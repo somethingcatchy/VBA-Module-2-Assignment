@@ -1,0 +1,143 @@
+Sub MultYearStockData()
+
+    Dim ws As Worksheet
+    Dim LastRow As Long
+    Dim Ticker As String
+    Dim First_Open As Double
+    Dim Last_Close As Double
+    Dim Total_Volume As Double
+    Dim Summary_Table_Row As Long
+    Dim MaxIncreaseTicker As String
+    Dim MaxDecreaseTicker As String
+    Dim MaxVolumeTicker As String
+    Dim MaxPercentIncrease As Double
+    Dim MaxPercentDecrease As Double
+    Dim MaxTotalVolume As Double
+    
+    ' Initialize variables for tracking maximum values
+    MaxPercentIncrease = 0
+    MaxPercentDecrease = 0
+    MaxTotalVolume = 0
+    
+    For Each ws In Worksheets
+        LastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+        
+        ' Initialize Summary_Table_Row for each worksheet
+        Summary_Table_Row = 2
+        
+        ' Clear existing summary table headers and formatting
+        ws.Range("I1:L" & LastRow).ClearContents
+        ws.Range("J2:J" & LastRow).FormatConditions.Delete
+        
+        ' Set new summary table headers
+        ws.Cells(1, 9).Value = "Ticker"
+        ws.Cells(1, 10).Value = "Total Change"
+        ws.Cells(1, 11).Value = "Percent Change"
+        ws.Cells(1, 12).Value = "Total Volume"
+        
+        Total_Volume = 0
+        First_Open = 0 ' Reset for each worksheet
+        
+        ' Loop through rows
+        For i = 2 To LastRow
+            If ws.Cells(i, 1).Value <> ws.Cells(i - 1, 1).Value Then
+                ' New ticker found
+                
+                ' If not the first row, write previous ticker's data
+                If i > 2 Then
+                    ws.Cells(Summary_Table_Row, 9).Value = Ticker
+                    ws.Cells(Summary_Table_Row, 10).Value = Last_Close - First_Open
+                    If First_Open <> 0 Then
+                        ws.Cells(Summary_Table_Row, 11).Value = ((Last_Close - First_Open) / First_Open) * 100
+                    Else
+                        ws.Cells(Summary_Table_Row, 11).Value = 0 ' Handle division by zero
+                    End If
+                    ws.Cells(Summary_Table_Row, 12).Value = Total_Volume
+                    
+                    ' Apply conditional formatting for "Total Change" column using built-in feature
+                    ws.Range("J" & Summary_Table_Row).FormatConditions.Add Type:=xlCellValue, Operator:=xlGreater, Formula1:="=0"
+                    ws.Range("J" & Summary_Table_Row).FormatConditions(1).Interior.Color = RGB(0, 255, 0) ' Green fill for positive values
+                    ws.Range("J" & Summary_Table_Row).FormatConditions.Add Type:=xlCellValue, Operator:=xlLess, Formula1:="=0"
+                    ws.Range("J" & Summary_Table_Row).FormatConditions(2).Interior.Color = RGB(255, 0, 0) ' Red fill for negative values
+                    
+                    ' Track maximum percent increase, percent decrease, and total volume
+                    If ws.Cells(Summary_Table_Row, 11).Value > MaxPercentIncrease Then
+                        MaxPercentIncrease = ws.Cells(Summary_Table_Row, 11).Value
+                        MaxIncreaseTicker = Ticker
+                    End If
+                    
+                    If ws.Cells(Summary_Table_Row, 11).Value < MaxPercentDecrease Then
+                        MaxPercentDecrease = ws.Cells(Summary_Table_Row, 11).Value
+                        MaxDecreaseTicker = Ticker
+                    End If
+                    
+                    If ws.Cells(Summary_Table_Row, 12).Value > MaxTotalVolume Then
+                        MaxTotalVolume = ws.Cells(Summary_Table_Row, 12).Value
+                        MaxVolumeTicker = Ticker
+                    End If
+                    
+                    Total_Volume = 0
+                    Summary_Table_Row = Summary_Table_Row + 1
+                End If
+                
+                ' Update current ticker
+                Ticker = ws.Cells(i, 1).Value
+                First_Open = ws.Cells(i, 3).Value ' Record the first open for the new ticker
+                Total_Volume = Total_Volume + ws.Cells(i, 7).Value
+                
+            End If
+            
+            ' Always update Last_Close
+            Last_Close = ws.Cells(i, 6).Value
+            Total_Volume = Total_Volume + ws.Cells(i, 7).Value
+        Next i
+        
+        ' Write data for the last ticker
+        ws.Cells(Summary_Table_Row, 9).Value = Ticker
+        ws.Cells(Summary_Table_Row, 10).Value = Last_Close - First_Open
+        If First_Open <> 0 Then
+            ws.Cells(Summary_Table_Row, 11).Value = ((Last_Close - First_Open) / First_Open) * 100
+        Else
+            ws.Cells(Summary_Table_Row, 11).Value = 0 ' Handle division by zero
+        End If
+        ws.Cells(Summary_Table_Row, 12).Value = Total_Volume
+        
+        ' Apply conditional formatting for "Total Change" column using built-in feature
+        ws.Range("J" & Summary_Table_Row).FormatConditions.Add Type:=xlCellValue, Operator:=xlGreater, Formula1:="=0"
+        ws.Range("J" & Summary_Table_Row).FormatConditions(1).Interior.Color = RGB(0, 255, 0) ' Green fill for positive values
+        ws.Range("J" & Summary_Table_Row).FormatConditions.Add Type:=xlCellValue, Operator:=xlLess, Formula1:="=0"
+        ws.Range("J" & Summary_Table_Row).FormatConditions(2).Interior.Color = RGB(255, 0, 0) ' Red fill for negative values
+        
+        ' Track maximum percent increase, percent decrease, and total volume for the last ticker
+        If ws.Cells(Summary_Table_Row, 11).Value > MaxPercentIncrease Then
+            MaxPercentIncrease = ws.Cells(Summary_Table_Row, 11).Value
+            MaxIncreaseTicker = Ticker
+        End If
+        
+        If ws.Cells(Summary_Table_Row, 11).Value < MaxPercentDecrease Then
+            MaxPercentDecrease = ws.Cells(Summary_Table_Row, 11).Value
+            MaxDecreaseTicker = Ticker
+        End If
+        
+        If ws.Cells(Summary_Table_Row, 12).Value > MaxTotalVolume Then
+            MaxTotalVolume = ws.Cells(Summary_Table_Row, 12).Value
+            MaxVolumeTicker = Ticker
+        
+        End If
+    
+        ws.Cells(3, 14) = "Highest % Increase"
+        ws.Cells(4, 14) = "Highest % Decrease"
+        ws.Cells(5, 14) = "Highest Total Volume"
+        
+        ws.Cells(3, 15) = MaxIncreaseTicker
+        ws.Cells(3, 16) = MaxPercentIncrease
+        ws.Cells(4, 15) = MaxDecreaseTicker
+        ws.Cells(4, 16) = MaxPercentDecrease
+        ws.Cells(5, 15) = MaxVolumeTicker
+        ws.Cells(5, 16) = MaxTotalVolume
+        
+    
+    
+    Next ws
+    
+End Sub
